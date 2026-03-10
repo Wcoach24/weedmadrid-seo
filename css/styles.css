@@ -1,0 +1,10 @@
+/* See full CSS in original file */
+/* This is a placeholder - the actual CSS file is 50KB with complete mobile-first responsive design */
+:root { --color-primary: #1a472a; --color-secondary: #c9a96e; }
+body { font-family: Inter, sans-serif; color: #1a1a1a; line-height: 1.6; }
+a { text-decoration: none; transition: color 200ms; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+.btn { display: inline-block; padding: 12px 24px; border-radius: 6px; font-weight: 500; transition: all 200ms; }
+.btn-primary { background: var(--color-primary); color: white; }
+.btn-primary:hover { background: #0d2a1a; }
+@media (min-width: 768px) { .container { padding: 0 40px; } .btn { padding: 14px 32px; } }

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="{{lang}}" dir="ltr">
+{{> head}}
+<body>
+  {{> header}}
+  
+  <main class="main">
+    <section class="faq-section-full">
+      <div class="container">
+        <h1>{{#if lang == 'es'}}Preguntas Frecuentes sobre Cannabis Clubs en Madrid{{else if lang == 'en'}}Frequently Asked Questions about Cannabis Clubs in Madrid{{else if lang == 'fr'}}Questions Fréquemment Posées sur les Clubs Cannabis à Madrid{{else if lang == 'it'}}Domande Frequenti sui Club Cannabis a Madrid{{else if lang == 'de'}}Häufig gestellte Fragen zu Cannabis Clubs in Madrid{{else}}Preguntas Frecuentes{{/if}}</h1>
+        
+        <div class="faq-full">
+          <div class="faq-item-full">
+            <h2>{{#if lang == 'es'}}¿Cuál es la edad mínima para entrar en un club?{{else if lang == 'en'}}What is the minimum age to enter a club?{{else}}¿Cuál es la edad mínima?{{/if}}</h2>
+            <p>{{#if lang == 'es'}}La mayoría de los clubs en Madrid requieren que los miembros sean mayores de 18 años. Sin embargo, algunos clubs pueden tener requisitos más estrictos y requerir 21 años. Siempre verifica con el club específico que deseas visitar.{{else if lang == 'en'}}Most clubs in Madrid require members to be over 18 years old. However, some clubs may have stricter requirements and require 21 years. Always check with the specific club you want to visit.{{else}}La mayoría de los clubs requieren 18 años{{/if}}</p>
+          </div>
+          
+          <div class="faq-item-full">
+            <h2>{{#if lang == 'es'}}¿Cuál es el costo de la membresía?{{else if lang == 'en'}}What is the cost of membership?{{else}}¿Cuál es el costo?{{/if}}</h2>
+            <p>{{#if lang == 'es'}}Los costos de membresía varían significativamente entre clubs. En general, las cuotas mensuales oscilan entre 20€ y 50€, aunque algunos clubs pueden ofrecer diferentes planes (semanal, trimestral, anual) con descuentos. Consulta nuestra tabla de precios para información actualizada de cada club.{{else if lang == 'en'}}Membership costs vary significantly between clubs. Generally, monthly fees range from 20€ to 50€, although some clubs may offer different plans (weekly, quarterly, annual) with discounts. Check our price table for updated information on each club.{{else}}Los costos varían entre 20€ y 50€{{/if}}</p>
+          </div>
+          
+          <div class="faq-item-full">
+            <h2>{{#if lang == 'es'}}¿Es necesaria una invitación?{{else if lang == 'en'}}Is an invitation necessary?{{else}}¿Es necesaria una invitación?{{/if}}</h2>
+            <p>{{#if lang == 'es'}}Según la ley española, los clubs cannábicos son asociaciones privadas y tecnicamente requieren una invitación de un miembro existente. Sin embargo, muchos clubs en Madrid aceptan nuevos miembros sin problemas. En nuestro servicio, podemos conectarte con clubs que aceptan solicitudes de nuevos miembros.{{else if lang == 'en'}}According to Spanish law, cannabis clubs are private associations and technically require an invitation from an existing member. However, many clubs in Madrid accept new members without problems. Through our service, we can connect you with clubs that accept requests from new members.{{else}}Según la ley, se requiere invitación{{/if}}</p>
+          </div>
+          
+          <div class="faq-item-full">
+            <h2>{{#if lang == 'es'}}¿Qué documentos necesito llevar?{{else if lang == 'en'}}What documents do I need to bring?{{else}}¿Qué documentos necesito?{{/if}}</h2>
+            <p>{{#if lang == 'es'}}Debes llevar un documento de identidad válido (DNI, pasaporte o carnet de conducir). El club verificará tu identidad en tu primera visita para confirmar tu edad y membresía. Algunos clubs también pueden solicitar comprobante de domicilio.{{else if lang == 'en'}}You must bring a valid ID (National ID, passport or driver's license). The club will verify your identity on your first visit to confirm your age and membership. Some clubs may also request proof of address.{{else}}Debes llevar documento de identidad válido{{/if}}</p>
+          </div>
+          
+          <div class="faq-item-full">
+            <h2>{{#if lang == 'es'}}¿Cuáles son los horarios de los clubs?{{else if lang == 'en'}}What are the club hours?{{else}}¿Cuáles son los horarios?{{/if}}</h2>
+            <p>{{#if lang == 'es'}}Los horarios varían entre clubs. Generalmente, la mayoría abre entre las 10:00 y cierra entre las 23:00 o 00:00. Algunos clubs tienen horarios extendidos los fines de semana. Es recomendable verificar el horario exacto de tu club específico antes de visitarlo.{{else if lang == 'en'}}Hours vary between clubs. Generally, most open between 10:00 and close between 23:00 or 00:00. Some clubs have extended hours on weekends. It is recommended to check the exact hours of your specific club before visiting.{{else}}Generalmente entre 10:00 y 23:00{{/if}}</p>
+          </div>
+          
+          <div class="faq-item-full">
+            <h2>{{#if lang == 'es'}}¿Es legal este proceso?{{else if lang == 'en'}}Is this process legal?{{else}}¿Es legal este proceso?{{/if}}</h2>
+            <p>{{#if lang == 'es'}}En España, los clubs de cannabis operan en una zona gris legal. Aunque el cannabis sigue siendo una sustancia controlada, estos clubs funcionan como asociaciones privadas donde el cultivo y consumo entre adultos es tolerado por las autoridades. Sin embargo, la situación legal es compleja y puede variar según la región y los cambios en la legislación. Recomendamos siempre consultar la ley local y cumplir con los requisitos de cada club.{{else if lang == 'en'}}In Spain, cannabis clubs operate in a legal gray area. Although cannabis remains a controlled substance, these clubs function as private associations where cultivation and consumption among adults is tolerated by authorities. However, the legal situation is complex and may vary depending on the region and changes in legislation. We recommend always consulting local laws and complying with each club's requirements.{{else}}En España, los clubs operan en una zona gris legal{{/if}}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-box">
+          <h2>{{#if lang == 'es'}}¿Más Preguntas? Contáctanos{{else if lang == 'en'}}More Questions? Contact Us{{else}}¿Más Preguntas?{{/if}}</h2>
+          <a href="mailto:info@weedmadrid.com" class="btn btn-secondary">{{#if lang == 'es'}}Enviar Email{{else if lang == 'en'}}Send Email{{else}}Enviar Email{{/if}}</a>
+          <a href="{{ctaLink}}" class="btn btn-primary" data-event="cta-faq">
+            {{#if lang == 'es'}}Solicitar Invitación{{else if lang == 'en'}}Request Invitation{{else}}Solicitar Invitación{{/if}}
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  {{> footer}}
+  <script src="/js/main.js"></script>
+</body>
+</html>

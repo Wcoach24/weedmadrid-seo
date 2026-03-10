@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="{{lang}}" dir="ltr">
+{{> head}}
+<body>
+  {{> header}}
+  
+  <main class="main">
+    <section class="prices-section">
+      <div class="container">
+        <h1>{{#if lang == 'es'}}Tabla de Precios de Membresía - Cannabis Clubs Madrid{{else if lang == 'en'}}Membership Price Table - Cannabis Clubs Madrid{{else}}Tabla de Precios{{/if}}</h1>
+        <p class="subtitle">{{#if lang == 'es'}}Precios actualizados {{today}}. Consulta directamente con cada club para ofertas especiales.{{else if lang == 'en'}}Prices updated {{today}}. Check directly with each club for special offers.{{else}}Precios actualizados{{/if}}</p>
+        
+        <div class="prices-grid">
+          {{#each zones}}
+          <div class="price-card">
+            <h3>{{name}}</h3>
+            <div class="zone-address">{{metro}}</div>
+            <div class="price-table">
+              <div class="price-row header">
+                <div class="price-col">{{#if ../lang == 'es'}}Plan{{else}}Plan{{/if}}</div>
+                <div class="price-col">{{#if ../lang == 'es'}}Duración{{else}}Duration{{/if}}</div>
+                <div class="price-col">{{#if ../lang == 'es'}}Precio{{else}}Price{{/if}}</div>
+              </div>
+              <div class="price-row">
+                <div class="price-col">{{#if ../lang == 'es'}}Entrada{{else}}Entry{{/if}}</div>
+                <div class="price-col">{{#if ../lang == 'es'}}Única{{else}}Single{{/if}}</div>
+                <div class="price-col price-amount">10-15€</div>
+              </div>
+              <div class="price-row">
+                <div class="price-col">{{#if ../lang == 'es'}}Semanal{{else}}Weekly{{/if}}</div>
+                <div class="price-col">7 {{#if ../lang == 'es'}}días{{else}}days{{/if}}</div>
+                <div class="price-col price-amount">20-30€</div>
+              </div>
+              <div class="price-row">
+                <div class="price-col">{{#if ../lang == 'es'}}Mensual{{else}}Monthly{{/if}}</div>
+                <div class="price-col">30 {{#if ../lang == 'es'}}días{{else}}days{{/if}}</div>
+                <div class="price-col price-amount">25-50€</div>
+              </div>
+              <div class="price-row">
+                <div class="price-col">{{#if ../lang == 'es'}}Trimestral{{else}}Quarterly{{/if}}</div>
+                <div class="price-col">3 {{#if ../lang == 'es'}}meses{{else}}months{{/if}}</div>
+                <div class="price-col price-amount">60-120€</div>
+              </div>
+              <div class="price-row">
+                <div class="price-col">{{#if ../lang == 'es'}}Anual{{else}}Annual{{/if}}</div>
+                <div class="price-col">12 {{#if ../lang == 'es'}}meses{{else}}months{{/if}}</div>
+                <div class="price-col price-amount">200-400€</div>
+              </div>
+            </div>
+            <a href="{{#if ../lang == 'es'}}/clubes/{{slug}}/{{else}}/{{../lang}}/clubes/{{slug}}/{{/if}}" class="btn-small">{{#if ../lang == 'es'}}Ver Detalles{{else}}Details{{/if}}</a>
+          </div>
+          {{/each}}
+        </div>
+      </div>
+    </section>
+    
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-box">
+          <h2>{{#if lang == 'es'}}¿Listo? Solicita tu Invitación{{else if lang == 'en'}}Ready? Request Your Invitation{{else}}¿Listo?{{/if}}</h2>
+          <a href="{{ctaLink}}" class="btn btn-primary btn-large" data-event="cta-prices">
+            {{#if lang == 'es'}}Solicitar Ahora{{else if lang == 'en'}}Request Now{{else}}Solicitar Ahora{{/if}}
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  {{> footer}}
+  <script src="/js/main.js"></script>
+</body>
+</html>

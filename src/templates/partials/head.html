@@ -1,0 +1,49 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  
+  {{#if metaTitle}}<title>{{metaTitle}}</title>{{/if}}
+  {{#if metaDescription}}<meta name="description" content="{{metaDescription}}">{{/if}}
+  {{#if metaKeywords}}<meta name="keywords" content="{{metaKeywords}}">{{/if}}
+  
+  <link rel="canonical" href="{{canonicalUrl}}">
+  
+  <!-- Hreflang Tags -->
+  {{hreflangTags}}
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ogTitle}}">
+  <meta property="og:description" content="{{ogDescription}}">
+  <meta property="og:url" content="{{ogUrl}}">
+  <meta property="og:site_name" content="Weed Madrid">
+  {{#if ogImage}}<meta property="og:image" content="{{ogImage}}">{{/if}}
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{twitterTitle}}">
+  <meta name="twitter:description" content="{{twitterDescription}}">
+  {{#if twitterImage}}<meta name="twitter:image" content="{{twitterImage}}">{{/if}}
+  
+  <!-- Apple & Android -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#1a472a">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/img/favicon.png">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  
+  <!-- CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/css/style.css">
+  
+  <!-- JSON-LD Schema Base -->
+  {{> schema-org}}
+  {{> schema-breadcrumb}}
+  
+  {{#if pageSchema}}<script type="application/ld+json">{{pageSchema}}</script>{{/if}}
+</head>

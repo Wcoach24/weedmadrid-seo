@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="{{lang}}" dir="ltr">
+{{> head}}
+<body>
+  {{> header}}
+  
+  <main class="main">
+    <section class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1 class="hero-title">
+            {{#if lang == 'es'}}Encuentra los Mejores Cannabis Clubs en Madrid{{else if lang == 'en'}}Find the Best Cannabis Clubs in Madrid{{else if lang == 'fr'}}Trouvez les Meilleurs Clubs Cannabis à Madrid{{else if lang == 'it'}}Scopri i Migliori Club Cannabis a Madrid{{else if lang == 'de'}}Finde die Besten Cannabis Clubs in Madrid{{else}}Encuentra los Mejores Cannabis Clubs en Madrid{{/if}}
+          </h1>
+          <p class="hero-subtitle">
+            {{#if lang == 'es'}}Directorio actualizado 2026 con horarios, precios y ubicaciones. Solicita tu invitación en segundos.{{else if lang == 'en'}}Updated 2026 directory with schedules, prices and locations. Request your invitation in seconds.{{else if lang == 'fr'}}Annuaire à jour avec horaires, tarifs et emplacements. Demandez votre invitation en quelques secondes.{{else if lang == 'it'}}Directory aggiornata con orari, prezzi e ubicazioni. Richiedi il tuo invito in pochi secondi.{{else if lang == 'de'}}Aktuelles Verzeichnis mit Öffnungszeiten, Preisen und Standorten. Fordern Sie Ihre Einladung in Sekunden an.{{else}}Directorio actualizado con horarios, precios y ubicaciones.{{/if}}
+          </p>
+          <a href="{{ctaLink}}" class="btn btn-primary" data-event="cta-homepage">
+            {{#if lang == 'es'}}Solicitar Invitación{{else if lang == 'en'}}Request Invitation{{else if lang == 'fr'}}Demander Invitation{{else if lang == 'it'}}Richiedi Invito{{else if lang == 'de'}}Einladung anfordern{{else}}Solicitar Invitación{{/if}}
+          </a>
+        </div>
+      </div>
+    </section>
+    
+    <section class="map-section">
+      <div class="container">
+        <h2>{{#if lang == 'es'}}Mapa de Clubs en Madrid{{else if lang == 'en'}}Clubs Map in Madrid{{else}}Mapa de Clubs{{/if}}</h2>
+        <div class="map-container" id="mapContainer" style="height: 500px; border-radius: 8px; overflow: hidden;"></div>
+        <p class="map-note">{{#if lang == 'es'}}Haz clic en un club para ver más detalles y obtener indicaciones.{{else if lang == 'en'}}Click on a club to see more details and get directions.{{else}}Haz clic en un club{{/if}}</p>
+      </div>
+    </section>
+    
+    <section class="zones-section">
+      <div class="container">
+        <h2>{{#if lang == 'es'}}Clubes por Zona{{else if lang == 'en'}}Clubs by Area{{else}}Clubes por Zona{{/if}}</h2>
+        <div class="zones-grid">
+          {{#each zones}}
+          <div class="zone-card">
+            <a href="{{#if ../lang == 'es'}}/clubes/{{slug}}/{{else}}/{{../lang}}/clubes/{{slug}}/{{/if}}" class="zone-link">
+              <h3 class="zone-name">{{name}}</h3>
+              <p class="zone-clubs">{{clubs_count}} {{#if ../lang == 'es'}}clubs{{else if ../lang == 'en'}}clubs{{else}}clubs{{/if}}</p>
+              <p class="zone-description">{{description}}</p>
+              <span class="zone-metro">{{metro}}</span>
+              <div class="zone-arrow">→</div>
+            </a>
+          </div>
+          {{/each}}
+        </div>
+        <div class="text-center">
+          <a href="{{#if lang == 'es'}}/clubes/{{else}}/{{lang}}/clubes/{{/if}}" class="btn btn-secondary">
+            {{#if lang == 'es'}}Ver Todos los Clubes{{else if lang == 'en'}}View All Clubs{{else}}Ver Todos los Clubes{{/if}}
+          </a>
+        </div>
+      </div>
+    </section>
+    
+    <section class="how-it-works">
+      <div class="container">
+        <h2>{{#if lang == 'es'}}Cómo Unirse en 3 Pasos{{else if lang == 'en'}}How to Join in 3 Steps{{else}}Cómo Unirse en 3 Pasos{{/if}}</h2>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number">1</div>
+            <h3>{{#if lang == 'es'}}Selecciona tu Club{{else if lang == 'en'}}Select Your Club{{else}}Selecciona tu Club{{/if}}</h3>
+            <p>{{#if lang == 'es'}}Elige el club que prefieres entre nuestras opciones en diferentes zonas de Madrid.{{else if lang == 'en'}}Choose your preferred club from our options in different areas of Madrid.{{else}}Elige el club que prefieres{{/if}}</p>
+          </div>
+          <div class="step-card">
+            <div class="step-number">2</div>
+            <h3>{{#if lang == 'es'}}Envía tu Solicitud{{else if lang == 'en'}}Submit Your Request{{else}}Envía tu Solicitud{{/if}}</h3>
+            <p>{{#if lang == 'es'}}Completa el formulario de solicitud con tus datos básicos. Solo toma 2 minutos.{{else if lang == 'en'}}Complete the request form with your basic information. It only takes 2 minutes.{{else}}Completa el formulario{{/if}}</p>
+          </div>
+          <div class="step-card">
+            <div class="step-number">3</div>
+            <h3>{{#if lang == 'es'}}Recibe tu Invitación{{else if lang == 'en'}}Get Your Invitation{{else}}Recibe tu Invitación{{/if}}</h3>
+            <p>{{#if lang == 'es'}}Recibe tu invitación por email o WhatsApp dentro de 24 horas. ¡Listo para visitar!{{else if lang == 'en'}}Receive your invitation via email or WhatsApp within 24 hours. Ready to visit!{{else}}Recibe tu invitación{{/if}}</p>
+          </div>
+        </div>
+        <div class="text-center">
+          <a href="{{#if lang == 'es'}}/como-unirse/{{else}}/{{lang}}/como-unirse/{{/if}}" class="btn btn-secondary">
+            {{#if lang == 'es'}}Ver Guía Completa{{else if lang == 'en'}}View Full Guide{{else}}Ver Guía Completa{{/if}}
+          </a>
+        </div>
+      </div>
+    </section>
+    
+    <section class="legal-info">
+      <div class="container">
+        <h2>{{#if lang == 'es'}}¿Es Legal?{{else if lang == 'en'}}Is It Legal?{{else}}¿Es Legal?{{/if}}</h2>
+        <div class="info-box">
+          <p>
+            {{#if lang == 'es'}}
+            En España, los cannabis clubs son asociaciones privadas sin ánimo de lucro reguladas por la ley. Aunque el cannabis sigue siendo una sustancia controlada a nivel nacional, el cultivo y consumo en estos clubs es tolerado por las autoridades como actividad privada entre adultos. Sin embargo, es importante cumplir con la normativa local y los requisitos de acceso.
+            {{else if lang == 'en'}}
+            In Spain, cannabis clubs are private non-profit associations regulated by law. Although cannabis remains a controlled substance at the national level, cultivation and consumption in these clubs is tolerated by authorities as a private activity between adults. However, it is important to comply with local regulations and access requirements.
+            {{else}}
+            En España, los cannabis clubs son asociaciones privadas sin ánimo de lucro reguladas por la ley.
+            {{/if}}
+          </p>
+          <p class="disclaimer">
+            {{#if lang == 'es'}}Siempre consulta la ley local y verifica que cumplas los requisitos antes de visitando un club.{{else if lang == 'en'}}Always check local laws and verify that you meet the requirements before visiting a club.{{else}}Siempre consulta la ley local{{/if}}
+          </p>
+        </div>
+      </div>
+    </section>
+    
+    <section class="faq-section">
+      <div class="container">
+        <h2>{{#if lang == 'es'}}Preguntas Frecuentes{{else if lang == 'en'}}Frequently Asked Questions{{else}}Preguntas Frecuentes{{/if}}</h2>
+        <div class="faq-grid">
+          <div class="faq-item">
+            <h3>{{#if lang == 'es'}}¿Cuál es la edad mínima?{{else if lang == 'en'}}What is the minimum age?{{else}}¿Cuál es la edad mínima?{{/if}}</h3>
+            <p>{{#if lang == 'es'}}La mayoría de clubs requieren ser mayor de 18 años, aunque algunos pueden requerir 21 años. Siempre verifica con el club específico.{{else if lang == 'en'}}Most clubs require you to be over 18 years old, although some may require 21 years. Always check with the specific club.{{else}}La mayoría de clubs requieren ser mayor de 18 años{{/if}}</p>
+          </div>
+          <div class="faq-item">
+            <h3>{{#if lang == 'es'}}¿Cuánto cuesta la membresía?{{else if lang == 'en'}}How much is the membership?{{else}}¿Cuánto cuesta la membresía?{{/if}}</h3>
+            <p>{{#if lang == 'es'}}Los precios varían entre clubes, típicamente de 20€ a 50€ por membresía mensual. Consulta nuestra tabla de precios para más detalles.{{else if lang == 'en'}}Prices vary between clubs, typically from 20€ to 50€ per monthly membership. Check our price table for more details.{{else}}Los precios varían entre clubes{{/if}}</p>
+          </div>
+          <div class="faq-item">
+            <h3>{{#if lang == 'es'}}¿Necesito invitación?{{else if lang == 'en'}}Do I need an invitation?{{else}}¿Necesito invitación?{{/if}}</h3>
+            <p>{{#if lang == 'es'}}Sí, la mayoría de clubs requieren una invitación de un miembro existente. Podemos ayudarte a conectarte con clubs que aceptan nuevos miembros.{{else if lang == 'en'}}Yes, most clubs require an invitation from an existing member. We can help you connect with clubs that accept new members.{{else}}Sí, la mayoría de clubs requieren una invitación{{/if}}</p>
+          </div>
+        </div>
+        <div class="text-center">
+          <a href="{{#if lang == 'es'}}/preguntas-frecuentes/{{else}}/{{lang}}/preguntas-frecuentes/{{/if}}" class="btn btn-secondary">
+            {{#if lang == 'es'}}Ver Todas las Preguntas{{else if lang == 'en'}}View All Questions{{else}}Ver Todas las Preguntas{{/if}}
+          </a>
+        </div>
+      </div>
+    </section>
+    
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-box">
+          <h2>{{#if lang == 'es'}}Comienza tu Experiencia Hoy{{else if lang == 'en'}}Start Your Experience Today{{else}}Comienza tu Experiencia Hoy{{/if}}</h2>
+          <p>{{#if lang == 'es'}}Solicita tu invitación en segundos y únete a nuestra comunidad. El acceso es rápido, seguro y confidencial.{{else if lang == 'en'}}Request your invitation in seconds and join our community. Access is fast, secure and confidential.{{else}}Solicita tu invitación en segundos{{/if}}</p>
+          <a href="{{ctaLink}}" class="btn btn-primary btn-large" data-event="cta-homepage-bottom">
+            {{#if lang == 'es'}}Solicitar Invitación Ahora{{else if lang == 'en'}}Request Invitation Now{{else}}Solicitar Invitación Ahora{{/if}}
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  {{> footer}}
+  
+  <script src="/js/main.js"></script>
+</body>
+</html>

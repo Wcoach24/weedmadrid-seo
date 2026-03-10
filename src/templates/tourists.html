@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="{{lang}}" dir="ltr">
+{{> head}}
+<body>
+  {{> header}}
+  
+  <main class="main">
+    <section class="tourists-section">
+      <div class="container">
+        <h1>{{#if lang == 'es'}}Guía para Turistas - Cannabis Clubs en Madrid{{else if lang == 'en'}}Tourist Guide - Cannabis Clubs in Madrid{{else}}Guía para Turistas{{/if}}</h1>
+        <p class="subtitle">{{#if lang == 'es'}}Todo lo que necesitas saber para visitar un cannabis club durante tu estancia en Madrid.{{else if lang == 'en'}}Everything you need to know to visit a cannabis club during your stay in Madrid.{{else}}Todo lo que necesitas saber{{/if}}</p>
+        
+        <div class="tourist-guide">
+          <section class="guide-section">
+            <h2>{{#if lang == 'es'}}¿Qué es un Cannabis Club?{{else if lang == 'en'}}What is a Cannabis Club?{{else}}¿Qué es un Cannabis Club?{{/if}}</h2>
+            <p>
+              {{#if lang == 'es'}}
+              Un cannabis club es una asociación privada donde los miembros adultos pueden cultivas y consumir cannabis de forma legal en España. No es un bar ni una tienda comercial, sino un espacio privado donde se respetan normas estrictas de privacidad y seguridad. Los clubs operan bajo la ley española y son tolerados por las autoridades locales.
+              {{else if lang == 'en'}}
+              A cannabis club is a private association where adult members can legally cultivate and consume cannabis in Spain. It's not a bar or commercial store, but a private space where strict privacy and security rules are respected. Clubs operate under Spanish law and are tolerated by local authorities.
+              {{else}}
+              Un cannabis club es una asociación privada
+              {{/if}}
+            </p>
+          </section>
+          
+          <section class="guide-section">
+            <h2>{{#if lang == 'es'}}Requisitos para Visitantes{{else if lang == 'en'}}Requirements for Visitors{{else}}Requisitos{{/if}}</h2>
+            <ul class="requirements-list">
+              <li>{{#if lang == 'es'}}Ser mayor de 18 años (algunos clubs requieren 21){{else if lang == 'en'}}Be 18+ years old (some clubs require 21){{else}}Ser mayor de 18 años{{/if}}</li>
+              <li>{{#if lang == 'es'}}Llevar documento de identidad válido (pasaporte recomendado){{else if lang == 'en'}}Bring valid ID (passport recommended){{else}}Llevar documento de identidad{{/if}}</li>
+              <li>{{#if lang == 'es'}}Tener invitación o ser aceptado como nuevo miembro{{else if lang == 'en'}}Have invitation or be accepted as new member{{else}}Tener invitación{{/if}}</li>
+              <li>{{#if lang == 'es'}}Respetar las normas del club{{else if lang == 'en'}}Respect club rules{{else}}Respetar las normas{{/if}}</li>
+            </ul>
+          </section>
+          
+          <section class="guide-section">
+            <h2>{{#if lang == 'es'}}Lo Que Esperar en tu Visita{{else if lang == 'en'}}What to Expect on Your Visit{{else}}Lo Que Esperar{{/if}}</h2>
+            <p>{{#if lang == 'es'}}Cuando llegues al club, el personal verificará tu identidad y membresía. Los clubs son espacios cómodos y seguros, frecuentemente con zonas de consumo, salas sociales y áreas de descanso. Algunos clubs ofrecen refreshments, snacks o una pequeña tienda. La atmósfera es generalmente relajada y sociales entre los miembros.{{else if lang == 'en'}}When you arrive at the club, staff will verify your identity and membership. Clubs are comfortable and safe spaces, often with consumption areas, social rooms and rest areas. Some clubs offer refreshments, snacks or a small shop. The atmosphere is generally relaxed and social among members.{{else}}Cuando llegues al club{{/if}}</p>
+          </section>
+          
+          <section class="guide-section">
+            <h2>{{#if lang == 'es'}}Normas Importantes a Respetar{{else if lang == 'en'}}Important Rules to Follow{{else}}Normas Importantes{{/if}}</h2>
+            <ul class="rules-list">
+              <li>{{#if lang == 'es'}}No se permite el consumo de otras drogas{{else if lang == 'en'}}No consumption of other drugs{{else}}No se permite consumo de otras drogas{{/if}}</li>
+              <li>{{#if lang == 'es'}}No está permitido traer cannabis de fuera{{else if lang == 'en'}}You cannot bring cannabis from outside{{else}}No se permite traer cannabis de fuera{{/if}}</li>
+              <li>{{#if lang == 'es'}}Respetar la privacidad y confidencialidad de otros miembros{{else if lang == 'en'}}Respect privacy and confidentiality of others{{else}}Respetar la privacidad{{/if}}</li>
+              <li>{{#if lang == 'es'}}No se permiten menores de edad{{else if lang == 'en'}}Minors are not allowed{{else}}No se permiten menores de edad{{/if}}</li>
+              <li>{{#if lang == 'es'}}Seguir las instrucciones del personal{{else if lang == 'en'}}Follow staff instructions{{else}}Seguir las instrucciones del personal{{/if}}</li>
+            </ul>
+          </section>
+          
+          <section class="guide-section">
+            <h2>{{#if lang == 'es'}}¿Es Seguro Visitar un Club?{{else if lang == 'en'}}Is It Safe to Visit a Club?{{else}}¿Es Seguro?{{/if}}</h2>
+            <p>{{#if lang == 'es'}}Sí, los cannabis clubs en Madrid son generalmente seguros. Operan bajo normas estrictas y con sistemas de seguridad. Los clubs tienen protocolos de verificación de identidad y mantienen un ambiente controlado. Sin embargo, como con cualquier destino, siempre es recomendable usar sentido común y tomar precauciones básicas de seguridad.{{else if lang == 'en'}}Yes, cannabis clubs in Madrid are generally safe. They operate under strict rules and security systems. Clubs have identity verification protocols and maintain a controlled environment. However, as with any destination, it's always recommended to use common sense and take basic safety precautions.{{else}}Sí, generalmente son seguros{{/if}}</p>
+          </section>
+        </div>
+      </div>
+    </section>
+    
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-box">
+          <h2>{{#if lang == 'es'}}Planifica tu Visita Hoy{{else if lang == 'en'}}Plan Your Visit Today{{else}}Planifica tu Visita{{/if}}</h2>
+          <a href="{{ctaLink}}" class="btn btn-primary btn-large" data-event="cta-tourists">
+            {{#if lang == 'es'}}Solicitar Invitación{{else if lang == 'en'}}Request Invitation{{else}}Solicitar Invitación{{/if}}
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  {{> footer}}
+  <script src="/js/main.js"></script>
+</body>
+</html>

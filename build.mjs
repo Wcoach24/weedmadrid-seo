@@ -29,7 +29,7 @@ function loadJSON(filePath) {
 }
 
 const zonesData = loadJSON(path.join(DATA_DIR, 'zones.json'));
-const ZONES = zonesData.zones;
+const ZONES = Array.isArray(zonesData) ? zonesData : zonesData.zones;
 
 // Load posts data
 let POSTS = [];

@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const BASE_URL = 'https://www.weedmadrid.com';
 const CTA_LINK = 'https://www.weedmadrid.com/invite/vallehermoso-club-social-madrid';
+const BASE_PATH = process.env.BASE_PATH || ''; // e.g. '/weedmadrid-seo' for GitHub Pages
 const TODAY = new Date().toISOString().split('T')[0];
 
 // Language configuration
@@ -38,54 +39,155 @@ if (fs.existsSync(postsPath)) {
   POSTS = loadJSON(postsPath);
 }
 
-// Template engine
+// Template engine with full conditional support (==, else if, else)
 class TemplateEngine {
   constructor(partials = {}) {
     this.partials = partials;
   }
 
-  render(template, data = {}) {
+  render(template, data = {}, parentData = null) {
     let result = template;
 
-    // Handle partials: {{> header}}
-    result = result.replace(/\{\{>\s*(\w+)\s*\}\}/g, (match, name) => {
+    // 1. Handle partials: {{> header}}
+    result = result.replace(/\{\{>\s*([\w-]+)\s*\}\}/g, (match, name) => {
       return this.partials[name] || '';
     });
 
-    // Handle conditionals: {{#if condition}}...{{/if}}
-    result = result.replace(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, condition, content) => {
-      return data[condition] ? content : '';
-    });
+    // 2. Handle loops FIRST (content rendered recursively with parent context)
+    result = this.handleLoops(result, data, parentData);
 
-    // Handle loops: {{#each array}}...{{/each}}
-    result = result.replace(/\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, arrayName, content) => {
-      const array = data[arrayName] || [];
-      return array.map((item, index) => {
-        const itemData = typeof item === 'object' ? item : { value: item };
-        itemData.index = index;
-        itemData.first = index === 0;
-        itemData.last = index === array.length - 1;
-        return this.renderItemContent(content, itemData);
-      }).join('');
-    });
+    // 3. Handle conditionals with == support and else if/else chains
+    result = this.handleConditionals(result, data, parentData);
 
-    // Handle variable replacement: {{variable}}
-    result = result.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
-      const keys = key.trim().split('.');
-      let value = data;
-      for (const k of keys) {
-        value = value[k];
-        if (value === undefined) return '';
-      }
-      return value !== undefined ? String(value) : '';
-    });
+    // 4. Handle variable replacement: {{variable}}, {{var.prop}}, {{../var}}
+    result = this.handleVariables(result, data, parentData);
 
     return result;
   }
 
-  renderItemContent(template, itemData) {
-    return this.render(template, itemData);
+  // Resolve a variable name against data + parentData
+  resolveVar(name, data, parentData) {
+    if (name.startsWith('../')) {
+      const actual = name.substring(3);
+      return parentData ? this.resolveVar(actual, parentData, null) : undefined;
+    }
+    const keys = name.split('.');
+    let value = data;
+    for (const key of keys) {
+      if (value === undefined || value === null) return undefined;
+      value = value[key];
+    }
+    return value;
   }
+
+  // Evaluate a condition: supports "var == 'value'" and simple truthiness
+  evaluateCondition(condition, data, parentData) {
+    const eqMatch = condition.match(/^(.+?)\s*==\s*'([^']*)'$/);
+    if (eqMatch) {
+      const varName = eqMatch[1].trim();
+      const expected = eqMatch[2];
+      const resolved = this.resolveVar(varName, data, parentData);
+      return resolved === expected;
+    }
+    // Simple truthiness
+    const resolved = this.resolveVar(condition.trim(), data, parentData);
+    return !!resolved;
+  }
+
+  // Split conditional body into branches at {{else if ...}} and {{else}}
+  splitBranches(body) {
+    const markers = [];
+    const pattern = /\{\{else(?:\s+if\s+(.+?))?\}\}/g;
+    let m;
+    while ((m = pattern.exec(body)) !== null) {
+      markers.push({
+        index: m.index,
+        length: m[0].length,
+        condition: m[1] ? m[1].trim() : null
+      });
+    }
+
+    const branches = [];
+    let start = 0;
+
+    // First segment = #if branch content
+    if (markers.length === 0) {
+      return [{ content: body }];
+    }
+
+    branches.push({ content: body.substring(start, markers[0].index) });
+    for (let i = 0; i < markers.length; i++) {
+      const nextEnd = i + 1 < markers.length ? markers[i + 1].index : body.length;
+      branches.push({
+        condition: markers[i].condition,
+        content: body.substring(markers[i].index + markers[i].length, nextEnd)
+      });
+    }
+
+    return branches;
+  }
+
+  handleConditionals(template, data, parentData) {
+    // Process iteratively to handle any remaining nested ifs
+    let result = template;
+    let prev;
+    do {
+      prev = result;
+      result = result.replace(/\{\{#if\s+(.+?)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, condition, body) => {
+        const branches = this.splitBranches(body);
+
+        // First branch uses the #if condition
+        if (this.evaluateCondition(condition.trim(), data, parentData)) {
+          return branches[0].content;
+        }
+
+        // Check else if / else branches
+        for (let i = 1; i < branches.length; i++) {
+          if (branches[i].condition === null) {
+            return branches[i].content; // {{else}} — always matches
+          }
+          if (this.evaluateCondition(branches[i].condition, data, parentData)) {
+            return branches[i].content;
+          }
+        }
+        return '';
+      });
+    } while (result !== prev);
+
+    return result;
+  }
+
+  handleLoops(template, data, parentData) {
+    return template.replace(/\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, arrayName, content) => {
+      const array = data[arrayName] || [];
+      return array.map((item, index) => {
+        const itemData = typeof item === 'object' ? { ...item } : { value: item };
+        itemData._index = index;
+        itemData._first = index === 0;
+        itemData._last = index === array.length - 1;
+        // Recursive render with current data as parent context for ../ references
+        return this.render(content, itemData, data);
+      }).join('');
+    });
+  }
+
+  handleVariables(template, data, parentData) {
+    return template.replace(/\{\{([^#/}][^}]*)\}\}/g, (match, key) => {
+      const trimmed = key.trim();
+      if (trimmed.startsWith('>')) return match; // partial (already handled)
+      const value = this.resolveVar(trimmed, data, parentData);
+      return value !== undefined && value !== null ? String(value) : '';
+    });
+  }
+}
+
+// Map zone data per language (adds 'description' and 'metro' from language-specific fields)
+function localizeZones(zones, lang) {
+  return zones.map(zone => ({
+    ...zone,
+    description: zone[`description_${lang}`] || zone.description_es || '',
+    metro: zone.metro_station || ''
+  }));
 }
 
 // Ensure directory exists
@@ -168,7 +270,13 @@ function generatePage(template, data, outputPath) {
     ...data
   };
 
-  const html = engine.render(template, fullData);
+  let html = engine.render(template, fullData);
+
+  // Apply BASE_PATH to all internal absolute paths (for GitHub Pages subpath)
+  if (BASE_PATH) {
+    html = html.replace(/(href|src|action)="\/(?!\/)/g, `$1="${BASE_PATH}/`);
+  }
+
   fs.writeFileSync(outputPath, html, 'utf8');
   console.log(`Generated: ${outputPath}`);
 }
@@ -319,7 +427,7 @@ async function build() {
       lang,
       hreflangTags: generateHreflangTags('/', lang),
       canPath: lang === 'es' ? '/' : `/${lang}/`,
-      zones: ZONES
+      zones: localizeZones(ZONES, lang)
     }, outputPath);
   }
 
@@ -333,7 +441,7 @@ async function build() {
       lang,
       hreflangTags: generateHreflangTags('/clubes/', lang),
       canPath: lang === 'es' ? '/clubes/' : `/${lang}/clubes/`,
-      zones: ZONES
+      zones: localizeZones(ZONES, lang)
     }, outputPath);
   }
 
@@ -510,7 +618,7 @@ async function build() {
       lang,
       hreflangTags: generateHreflangTags('/precios/', lang),
       canPath: lang === 'es' ? '/precios/' : `/${lang}/precios/`,
-      zones: ZONES
+      zones: localizeZones(ZONES, lang)
     }, outputPath);
   }
 

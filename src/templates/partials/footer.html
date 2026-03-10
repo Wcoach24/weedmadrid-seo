@@ -3,32 +3,37 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-col">
-          <h4 class="footer-title">{{#if lang == 'es'}}Explorar{{else if lang == 'en'}}Explore{{else}}Explorar{{/if}}</h4>
+          <h4 class="footer-title">{{#if lang == 'es'}}Explorar{{else if lang == 'en'}}Explore{{else if lang == 'fr'}}Explorer{{else if lang == 'it'}}Esplora{{else if lang == 'de'}}Erkunden{{else}}Explorar{{/if}}</h4>
           <ul class="footer-links">
-            <li><a href="{{#if lang == 'es'}}/clubes/{{else}}/{{lang}}/clubes/{{/if}}">{{#if lang == 'es'}}Todos los Clubes{{else if lang == 'en'}}All Clubs{{else}}Todos los Clubes{{/if}}</a></li>
-            <li><a href="{{#if lang == 'es'}}/como-unirse/{{else}}/{{lang}}/como-unirse/{{/if}}">{{#if lang == 'es'}}Cómo Unirse{{else if lang == 'en'}}How to Join{{else}}Cómo Unirse{{/if}}</a></li>
-            <li><a href="{{#if lang == 'es'}}/precios/{{else}}/{{lang}}/precios/{{/if}}">{{#if lang == 'es'}}Tabla de Precios{{else if lang == 'en'}}Price List{{else}}Precios{{/if}}</a></li>
+            <li><a href="{{#if lang == 'es'}}/clubes/{{else}}/{{lang}}/clubes/{{/if}}">{{#if lang == 'es'}}Todos los Clubes{{else if lang == 'en'}}All Clubs{{else if lang == 'fr'}}Tous les Clubs{{else if lang == 'it'}}Tutti i Club{{else if lang == 'de'}}Alle Clubs{{else}}Todos los Clubes{{/if}}</a></li>
+            <li><a href="{{#if lang == 'es'}}/mapa/{{else}}/{{lang}}/mapa/{{/if}}">{{#if lang == 'es'}}Mapa Interactivo{{else if lang == 'en'}}Map{{else if lang == 'fr'}}Carte{{else if lang == 'it'}}Mappa{{else if lang == 'de'}}Karte{{else}}Mapa{{/if}}</a></li>
+            <li><a href="{{#if lang == 'es'}}/como-unirse/{{else}}/{{lang}}/como-unirse/{{/if}}">{{#if lang == 'es'}}Cómo Unirse{{else if lang == 'en'}}How to Join{{else if lang == 'fr'}}S'inscrire{{else if lang == 'it'}}Iscriversi{{else if lang == 'de'}}Beitreten{{else}}Cómo Unirse{{/if}}</a></li>
+            <li><a href="{{#if lang == 'es'}}/precios/{{else}}/{{lang}}/precios/{{/if}}">{{#if lang == 'es'}}Tabla de Precios{{else if lang == 'en'}}Price List{{else if lang == 'fr'}}Tarifs{{else if lang == 'it'}}Listino Prezzi{{else if lang == 'de'}}Preisliste{{else}}Precios{{/if}}</a></li>
           </ul>
         </div>
         
         <div class="footer-col">
-          <h4 class="footer-title">{{#if lang == 'es'}}Información{{else if lang == 'en'}}Info{{else}}Información{{/if}}</h4>
+          <h4 class="footer-title">{{#if lang == 'es'}}Información{{else if lang == 'en'}}Info{{else if lang == 'fr'}}Infos{{else if lang == 'it'}}Info{{else if lang == 'de'}}Info{{else}}Información{{/if}}</h4>
           <ul class="footer-links">
-            <li><a href="{{#if lang == 'es'}}/preguntas-frecuentes/{{else}}/{{lang}}/preguntas-frecuentes/{{/if}}">{{#if lang == 'es'}}Preguntas Frecuentes{{else if lang == 'en'}}FAQ{{else}}FAQ{{/if}}</a></li>
-            <li><a href="{{#if lang == 'es'}}/para-turistas/{{else}}/{{lang}}/para-turistas/{{/if}}">{{#if lang == 'es'}}Para Turistas{{else if lang == 'en'}}For Tourists{{else}}Para Turistas{{/if}}</a></li>
+            <li><a href="{{#if lang == 'es'}}/preguntas-frecuentes/{{else}}/{{lang}}/preguntas-frecuentes/{{/if}}">{{#if lang == 'es'}}Preguntas Frecuentes{{else if lang == 'en'}}FAQ{{else if lang == 'fr'}}FAQ{{else if lang == 'it'}}FAQ{{else if lang == 'de'}}FAQ{{else}}FAQ{{/if}}</a></li>
+            <li><a href="{{#if lang == 'es'}}/para-turistas/{{else}}/{{lang}}/para-turistas/{{/if}}">{{#if lang == 'es'}}Para Turistas{{else if lang == 'en'}}For Tourists{{else if lang == 'fr'}}Guide Touriste{{else if lang == 'it'}}Guida Turisti{{else if lang == 'de'}}Touristenführer{{else}}Para Turistas{{/if}}</a></li>
+            <li><a href="{{#if lang == 'es'}}/sobre-nosotros/{{else}}/{{lang}}/sobre-nosotros/{{/if}}">{{#if lang == 'es'}}Sobre Nosotros{{else if lang == 'en'}}About Us{{else if lang == 'fr'}}À Propos{{else if lang == 'it'}}Chi Siamo{{else if lang == 'de'}}Über Uns{{else}}Sobre Nosotros{{/if}}</a></li>
+            <li><a href="{{#if lang == 'es'}}/legal/{{else}}/{{lang}}/legal/{{/if}}">{{#if lang == 'es'}}Legal{{else if lang == 'en'}}Legal{{else if lang == 'fr'}}Légal{{else if lang == 'it'}}Legale{{else if lang == 'de'}}Rechtlich{{else}}Legal{{/if}}</a></li>
           </ul>
         </div>
         
         <div class="footer-col">
-          <h4 class="footer-title">{{#if lang == 'es'}}Contacto{{else if lang == 'en'}}Contact{{else}}Contacto{{/if}}</h4>
+          <h4 class="footer-title">{{#if lang == 'es'}}Contacto{{else if lang == 'en'}}Contact{{else if lang == 'fr'}}Contact{{else if lang == 'it'}}Contatti{{else if lang == 'de'}}Kontakt{{else}}Contacto{{/if}}</h4>
           <ul class="footer-links">
-            <li><a href="mailto:info@weedmadrid.com">{{#if lang == 'es'}}Email{{else if lang == 'en'}}Email{{else}}Email{{/if}}</a></li>
+            <li><a href="https://wa.me/34XXXXXXXXX" target="_blank" rel="noopener">WhatsApp</a></li>
+            <li><a href="mailto:info@weedmadrid.com">{{#if lang == 'es'}}Email{{else if lang == 'en'}}Email{{else if lang == 'fr'}}Email{{else if lang == 'it'}}Email{{else if lang == 'de'}}Email{{else}}Email{{/if}}</a></li>
             <li><a href="https://instagram.com/weedmadrid" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://telegram.me/weedmadrid" target="_blank" rel="noopener">Telegram</a></li>
           </ul>
         </div>
         
         <div class="footer-col">
-          <h4 class="footer-title">{{#if lang == 'es'}}Idiomas{{else if lang == 'en'}}Languages{{else}}Idiomas{{/if}}</h4>
+          <h4 class="footer-title">{{#if lang == 'es'}}Idiomas{{else if lang == 'en'}}Languages{{else if lang == 'fr'}}Langues{{else if lang == 'it'}}Lingue{{else if lang == 'de'}}Sprachen{{else}}Idiomas{{/if}}</h4>
           <ul class="footer-links">
             <li><a href="/">Español</a></li>
             <li><a href="/en/">English</a></li>
@@ -41,7 +46,12 @@
       </div>
       
       <div class="footer-bottom">
-        <p>&copy; 2026 Weed Madrid. {{#if lang == 'es'}}Todos los derechos reservados.{{else if lang == 'en'}}All rights reserved.{{else}}Todos los derechos reservados.{{/if}}</p>
+        <p>&copy; 2026 Weed Madrid. {{#if lang == 'es'}}Todos los derechos reservados.{{else if lang == 'en'}}All rights reserved.{{else if lang == 'fr'}}Tous droits réservés.{{else if lang == 'it'}}Tutti i diritti riservati.{{else if lang == 'de'}}Alle Rechte vorbehalten.{{else}}Todos los derechos reservados.{{/if}}</p>
+        <ul class="footer-legal">
+          <li><a href="{{#if lang == 'es'}}/legal/privacidad/{{else}}/{{lang}}/legal/privacidad/{{/if}}">{{#if lang == 'es'}}Privacidad{{else if lang == 'en'}}Privacy{{else if lang == 'fr'}}Confidentialité{{else if lang == 'it'}}Privacy{{else if lang == 'de'}}Datenschutz{{else}}Privacidad{{/if}}</a></li>
+          <li><a href="{{#if lang == 'es'}}/legal/cookies/{{else}}/{{lang}}/legal/cookies/{{/if}}">{{#if lang == 'es'}}Cookies{{else if lang == 'en'}}Cookies{{else if lang == 'fr'}}Cookies{{else if lang == 'it'}}Cookie{{else if lang == 'de'}}Cookies{{else}}Cookies{{/if}}</a></li>
+          <li><a href="{{#if lang == 'es'}}/legal/aviso/{{else}}/{{lang}}/legal/aviso/{{/if}}">{{#if lang == 'es'}}Aviso Legal{{else if lang == 'en'}}Legal Notice{{else if lang == 'fr'}}Mentions Légales{{else if lang == 'it'}}Avvertenze Legali{{else if lang == 'de'}}Impressum{{else}}Aviso Legal{{/if}}</a></li>
+        </ul>
       </div>
     </div>
   </div>

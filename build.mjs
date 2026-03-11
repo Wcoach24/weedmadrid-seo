@@ -32,802 +32,428 @@ function loadJSON(filePath) {
 const zonesData = loadJSON(path.join(DATA_DIR, 'zones.json'));
 const ZONES = Array.isArray(zonesData) ? zonesData : zonesData.zones;
 
-// Load posts data
+// Load posts data - from individual files in posts/ dir, or fallback to posts.json
 let POSTS = [];
-const postsPath = path.join(DATA_DIR, 'posts.json');
-if (fs.existsSync(postsPath)) {
-  POSTS = loadJSON(postsPath);
+const postsDir = path.join(DATA_DIR, 'posts');
+if (fs.existsSync(postsDir) && fs.statSync(postsDir).isDirectory()) {
+  const postFiles = fs.readdirSync(postsDir).filter(f => f.endsWith('.json')).sort();
+  for (const file of postFiles) {
+    const post = loadJSON(path.join(postsDir, file));
+    POSTS.push(post);
+  }
+  console.log(`Loaded ${POSTS.length} posts from ${postsDir}/`);
+} else {
+  const postsPath = path.join(DATA_DIR, 'posts.json');
+  if (fs.existsSync(postsPath)) {
+    POSTS = loadJSON(postsPath);
+    console.log(`Loaded ${POSTS.length} posts from posts.json`);
+  }
 }
 
-// Template engine with full conditional support (==, else if, else)
-class TemplateEngine {
-  constructor(partials = {}) {
-    this.partials = partials;
+// Template engine — supports {{#if x == 'y'}}, {{else if}}, {{else}}, {{#each}}, {{../}}, {{> partial}}
+// Returns { html, context } for advanced processing
+function renderTemplate(templateString, context = {}) {
+  let html = templateString;
+
+  // FIRST PASS: Resolve nested and recursive partials
+  html = resolvePartialsRecursive(html, context);
+
+  // SECOND PASS: Process conditionals
+  html = processConditionals(html, context);
+
+  // THIRD PASS: Process loops
+  html = processLoops(html, context);
+
+  // FOURTH PASS: Replace variables
+  html = replaceVariables(html, context);
+
+  return html;
+}
+
+function resolvePartialsRecursive(html, context, depth = 0, maxDepth = 10) {
+  if (depth > maxDepth) {
+    console.warn('⚠️  Partial recursion depth exceeded (max: ' + maxDepth + ')');
+    return html;
   }
 
-  render(template, data = {}, parentData = null) {
-    let result = template;
+  const partialRegex = /{{>\s*([\w-/]+)\s*}}/g;
+  let hasPartials = false;
+  let result = html;
 
-    // 1. Handle partials: {{> header}}
-    result = result.replace(/\{\{>\s*([\w-]+)\s*\}\}/g, (match, name) => {
-      return this.partials[name] || '';
+  result = result.replace(partialRegex, (match, partialName) => {
+    hasPartials = true;
+    const partialPath = path.join(PARTIALS_DIR, partialName + '.html');
+
+    if (!fs.existsSync(partialPath)) {
+      console.warn(`⚠️  Partial not found: ${partialPath}`);
+      return match; // Return unresolved if not found
+    }
+
+    let partialContent = fs.readFileSync(partialPath, 'utf8');
+    // Recursively resolve partials within this partial
+    partialContent = resolvePartialsRecursive(partialContent, context, depth + 1, maxDepth);
+    return partialContent;
+  });
+
+  // If we found and resolved partials, recurse again to handle nested partials
+  if (hasPartials) {
+    const stillHasPartials = /{{>\s*[\w-/]+\s*}}/.test(result);
+    if (stillHasPartials) {
+      result = resolvePartialsRecursive(result, context, depth + 1, maxDepth);
+    }
+  }
+
+  return result;
+}
+
+function processConditionals(html, context) {
+  // {{#if condition}} ... {{/if}}
+  // {{#if x == 'value'}} ... {{else if y == 'value'}} ... {{else}} ... {{/if}}
+
+  const ifBlockRegex = /{{#if\s+([^}]+)}}([\s\S]*?)(?:{{else}}([\s\S]*?))?{{\/ if}}/g;
+
+  return html.replace(ifBlockRegex, (match, condition, thenBlock, elseBlock) => {
+    const conditionResult = evaluateCondition(condition, context);
+    return conditionResult ? thenBlock.trim() : (elseBlock ? elseBlock.trim() : '');
+  });
+}
+
+function evaluateCondition(condition, context) {
+  condition = condition.trim();
+
+  // Handle {{#if x == 'y'}}
+  if (condition.includes('==')) {
+    const [left, right] = condition.split('==').map(s => s.trim());
+    const leftValue = context[left] ?? left.replace(/['"]/g, '');
+    const rightValue = right.replace(/['"]/g, '');
+    return String(leftValue) === String(rightValue);
+  }
+
+  // Handle {{#if x}}
+  const value = context[condition];
+  return Boolean(value && value !== '' && value !== 0);
+}
+
+function processLoops(html, context) {
+  // {{#each array}}...{{/each}}
+  const eachRegex = /{{#each\s+([\w.]+)}}([\s\S]*?){{\/ each}}/g;
+
+  return html.replace(eachRegex, (match, arrayName, blockContent) => {
+    const array = context[arrayName] || [];
+
+    if (!Array.isArray(array)) {
+      console.warn(`⚠️  Not an array: ${arrayName}`);
+      return '';
+    }
+
+    return array
+      .map((item, index) => {
+        const itemContext = {
+          ...context,
+          this: item,
+          index: index,
+          '@index': index,
+          '@first': index === 0,
+          '@last': index === array.length - 1,
+          // Map item properties to context so {{name}} works
+          ...item,
+        };
+        return replaceVariables(blockContent, itemContext);
+      })
+      .join('');
+  });
+}
+
+function replaceVariables(html, context) {
+  // Replace {{var}}, {{obj.prop}}, {{../parent}}
+  return html.replace(/{{([\w.@#^/]+)}}/g, (match, varName) => {
+    // Handle relative paths like {{../}}
+    if (varName.startsWith('../')) {
+      return match; // Leave unprocessed in this simple version
+    }
+
+    // Handle special variables
+    if (varName === '@index') return context['@index'] ?? '';
+    if (varName === '@first') return context['@first'] ? 'true' : '';
+    if (varName === '@last') return context['@last'] ? 'true' : '';
+
+    // Handle dot notation like {{obj.prop}}
+    const parts = varName.split('.');
+    let value = context;
+    for (const part of parts) {
+      value = value?.[part];
+    }
+    return value !== undefined ? value : '';
+  });
+}
+
+// Copy static assets (CSS, JS, images)
+function copyAssets() {
+  console.log('\n📦 Copying assets...');
+
+  // Create dist directories
+  if (!fs.existsSync(DIST_DIR)) fs.mkdirSync(DIST_DIR);
+  if (!fs.existsSync(path.join(DIST_DIR, 'css'))) fs.mkdirSync(path.join(DIST_DIR, 'css'));
+  if (!fs.existsSync(path.join(DIST_DIR, 'js'))) fs.mkdirSync(path.join(DIST_DIR, 'js'));
+  if (!fs.existsSync(path.join(DIST_DIR, 'img'))) fs.mkdirSync(path.join(DIST_DIR, 'img'));
+
+  // Copy CSS
+  if (fs.existsSync(CSS_DIR)) {
+    fs.readdirSync(CSS_DIR).forEach(file => {
+      const src = path.join(CSS_DIR, file);
+      const dest = path.join(DIST_DIR, 'css', file);
+      fs.copyFileSync(src, dest);
     });
-
-    // 2. Handle loops FIRST (content rendered recursively with parent context)
-    result = this.handleLoops(result, data, parentData);
-
-    // 3. Handle conditionals with == support and else if/else chains
-    result = this.handleConditionals(result, data, parentData);
-
-    // 4. Handle variable replacement: {{variable}}, {{var.prop}}, {{../var}}
-    result = this.handleVariables(result, data, parentData);
-
-    return result;
+    console.log(`✓ Copied ${fs.readdirSync(CSS_DIR).length} CSS files`);
   }
 
-  // Resolve a variable name against data + parentData
-  resolveVar(name, data, parentData) {
-    if (name.startsWith('../')) {
-      const actual = name.substring(3);
-      return parentData ? this.resolveVar(actual, parentData, null) : undefined;
-    }
-    const keys = name.split('.');
-    let value = data;
-    for (const key of keys) {
-      if (value === undefined || value === null) return undefined;
-      value = value[key];
-    }
-    return value;
+  // Copy JS
+  if (fs.existsSync(JS_DIR)) {
+    fs.readdirSync(JS_DIR).forEach(file => {
+      const src = path.join(JS_DIR, file);
+      const dest = path.join(DIST_DIR, 'js', file);
+      fs.copyFileSync(src, dest);
+    });
+    console.log(`✓ Copied ${fs.readdirSync(JS_DIR).length} JS files`);
   }
 
-  // Evaluate a condition: supports "var == 'value'" and simple truthiness
-  evaluateCondition(condition, data, parentData) {
-    const eqMatch = condition.match(/^(.+?)\s*==\s*'([^']*)'$/);
-    if (eqMatch) {
-      const varName = eqMatch[1].trim();
-      const expected = eqMatch[2];
-      const resolved = this.resolveVar(varName, data, parentData);
-      return resolved === expected;
-    }
-    // Simple truthiness
-    const resolved = this.resolveVar(condition.trim(), data, parentData);
-    return !!resolved;
-  }
-
-  // Split conditional body into branches at {{else if ...}} and {{else}}
-  splitBranches(body) {
-    const markers = [];
-    const pattern = /\{\{else(?:\s+if\s+(.+?))?\}\}/g;
-    let m;
-    while ((m = pattern.exec(body)) !== null) {
-      markers.push({
-        index: m.index,
-        length: m[0].length,
-        condition: m[1] ? m[1].trim() : null
-      });
-    }
-
-    const branches = [];
-    let start = 0;
-
-    // First segment = #if branch content
-    if (markers.length === 0) {
-      return [{ content: body }];
-    }
-
-    branches.push({ content: body.substring(start, markers[0].index) });
-    for (let i = 0; i < markers.length; i++) {
-      const nextEnd = i + 1 < markers.length ? markers[i + 1].index : body.length;
-      branches.push({
-        condition: markers[i].condition,
-        content: body.substring(markers[i].index + markers[i].length, nextEnd)
-      });
-    }
-
-    return branches;
-  }
-
-  handleConditionals(template, data, parentData) {
-    // Process iteratively to handle any remaining nested ifs
-    let result = template;
-    let prev;
-    do {
-      prev = result;
-      result = result.replace(/\{\{#if\s+(.+?)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, condition, body) => {
-        const branches = this.splitBranches(body);
-
-        // First branch uses the #if condition
-        if (this.evaluateCondition(condition.trim(), data, parentData)) {
-          return branches[0].content;
+  // Copy images
+  if (fs.existsSync(IMG_DIR)) {
+    const copyDirRecursive = (srcDir, destDir) => {
+      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir);
+      fs.readdirSync(srcDir).forEach(file => {
+        const srcPath = path.join(srcDir, file);
+        const destPath = path.join(destDir, file);
+        if (fs.statSync(srcPath).isDirectory()) {
+          copyDirRecursive(srcPath, destPath);
+        } else {
+          fs.copyFileSync(srcPath, destPath);
         }
-
-        // Check else if / else branches
-        for (let i = 1; i < branches.length; i++) {
-          if (branches[i].condition === null) {
-            return branches[i].content; // {{else}} — always matches
-          }
-          if (this.evaluateCondition(branches[i].condition, data, parentData)) {
-            return branches[i].content;
-          }
-        }
-        return '';
       });
-    } while (result !== prev);
-
-    return result;
-  }
-
-  handleLoops(template, data, parentData) {
-    return template.replace(/\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, arrayName, content) => {
-      const array = data[arrayName] || [];
-      return array.map((item, index) => {
-        const itemData = typeof item === 'object' ? { ...item } : { value: item };
-        itemData._index = index;
-        itemData._first = index === 0;
-        itemData._last = index === array.length - 1;
-        // Recursive render with current data as parent context for ../ references
-        return this.render(content, itemData, data);
-      }).join('');
-    });
-  }
-
-  handleVariables(template, data, parentData) {
-    return template.replace(/\{\{([^#/}][^}]*)\}\}/g, (match, key) => {
-      const trimmed = key.trim();
-      if (trimmed.startsWith('>')) return match; // partial (already handled)
-      const value = this.resolveVar(trimmed, data, parentData);
-      return value !== undefined && value !== null ? String(value) : '';
-    });
+    };
+    copyDirRecursive(IMG_DIR, path.join(DIST_DIR, 'img'));
+    console.log(`✓ Copied image files`);
   }
 }
 
-// Map zone data per language (adds 'description' and 'metro' from language-specific fields)
-function localizeZones(zones, lang) {
-  return zones.map(zone => ({
-    ...zone,
-    description: zone[`description_${lang}`] || zone.description_es || '',
-    metro: zone.metro_station || ''
-  }));
-}
+// Generate individual pages from templates
+function generatePages() {
+  console.log('\n🎨 Generating pages...');
 
-// Ensure directory exists
-function ensureDir(dir) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
-
-// Load all partials
-function loadPartials() {
-  const partials = {};
-  const files = fs.readdirSync(PARTIALS_DIR);
-
-  for (const file of files) {
-    if (file.endsWith('.html')) {
-      const name = file.replace('.html', '');
-      const filePath = path.join(PARTIALS_DIR, file);
-      partials[name] = fs.readFileSync(filePath, 'utf8');
-    }
+  const pagesDir = path.join(TEMPLATES_DIR, 'pages');
+  if (!fs.existsSync(pagesDir)) {
+    console.error('❌ Pages directory not found:', pagesDir);
+    return;
   }
 
-  return partials;
-}
+  const pages = fs.readdirSync(pagesDir).filter(f => f.endsWith('.html'));
 
-// Copy directory recursively
-function copyDir(src, dest) {
-  ensureDir(dest);
-  const files = fs.readdirSync(src);
+  pages.forEach(pageFile => {
+    const pageName = pageFile.replace('.html', '');
+    const templatePath = path.join(pagesDir, pageFile);
+    const templateContent = fs.readFileSync(templatePath, 'utf8');
 
-  for (const file of files) {
-    const srcPath = path.join(src, file);
-    const destPath = path.join(dest, file);
-    const stat = fs.statSync(srcPath);
+    // Generate page for each language
+    LANGUAGES.forEach(lang => {
+      // Prepare page context
+      const pageContext = {
+        currentLang: lang,
+        currentDate: TODAY,
+        baseUrl: BASE_URL,
+        ctaLink: CTA_LINK,
+        zones: ZONES,
+        posts: POSTS.filter(p => p.lang === lang || !p.lang),
+        langPrefix: lang === DEFAULT_LANG ? '' : '/' + lang,
+      };
 
-    if (stat.isDirectory()) {
-      copyDir(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
-}
+      const html = renderTemplate(templateContent, pageContext);
 
-// Generate hreflang tags
-function generateHreflangTags(path, lang = 'es') {
-  const languages = ['es', 'en', 'fr', 'it', 'de', 'pt'];
-  let hreflang = '';
-
-  for (const l of languages) {
-    let href;
-    if (path === '/') {
-      href = l === 'es' ? `${BASE_URL}/` : `${BASE_URL}/${l}/`;
-    } else {
-      const pathParts = path.split('/').filter(p => p);
-      if (pathParts[0] !== 'en' && pathParts[0] !== 'fr' && pathParts[0] !== 'it' && pathParts[0] !== 'de' && pathParts[0] !== 'pt') {
-        href = l === 'es' ? `${BASE_URL}${path}` : `${BASE_URL}/${l}${path}`;
+      // Determine output path
+      let outputPath;
+      if (lang === DEFAULT_LANG) {
+        outputPath = path.join(DIST_DIR, pageName + '.html');
       } else {
-        const corePath = '/' + pathParts.slice(1).join('/');
-        href = l === 'es' ? `${BASE_URL}${corePath}` : `${BASE_URL}/${l}${corePath}`;
+        const langDir = path.join(DIST_DIR, lang);
+        if (!fs.existsSync(langDir)) fs.mkdirSync(langDir);
+        outputPath = path.join(langDir, pageName + '.html');
       }
-    }
-    hreflang += `<link rel="alternate" hreflang="${l}" href="${href}" />\n  `;
-  }
 
-  hreflang += `<link rel="alternate" hreflang="x-default" href="${BASE_URL}/en/" />`;
-  return hreflang;
-}
-
-// Generate page
-function generatePage(template, data, outputPath) {
-  ensureDir(path.dirname(outputPath));
-  const partials = loadPartials();
-  const engine = new TemplateEngine(partials);
-
-  // Add global data
-  const fullData = {
-    baseUrl: BASE_URL,
-    ctaLink: CTA_LINK,
-    today: TODAY,
-    ...data
-  };
-
-  let html = engine.render(template, fullData);
-
-  // Apply BASE_PATH to all internal absolute paths (for GitHub Pages subpath)
-  if (BASE_PATH) {
-    html = html.replace(/(href|src|action)="\/(?!\/)/g, `$1="${BASE_PATH}/`);
-  }
-
-  fs.writeFileSync(outputPath, html, 'utf8');
-  console.log(`Generated: ${outputPath}`);
-}
-
-// Build sitemap.xml
-function generateSitemap() {
-  const urls = [];
-
-  const addUrl = (loc, lastmod = TODAY, changefreq = 'weekly', priority = '0.8') => {
-    urls.push({
-      loc,
-      lastmod,
-      changefreq,
-      priority
+      fs.writeFileSync(outputPath, html);
     });
-  };
 
-  // Homepage for each language
-  addUrl(`${BASE_URL}/`, TODAY, 'daily', '1.0');
-  for (const lang of ['en', 'fr', 'it', 'de', 'pt']) {
-    addUrl(`${BASE_URL}/${lang}/`, TODAY, 'daily', '1.0');
+    console.log(`✓ Generated: ${pageName}`);
+  });
+}
+
+// Generate zone pages
+function generateZonePages() {
+  console.log('\n🗺️  Generating zone pages...');
+
+  const zoneTemplateFile = path.join(TEMPLATES_DIR, 'zone.html');
+  if (!fs.existsSync(zoneTemplateFile)) {
+    console.error('❌ Zone template not found:', zoneTemplateFile);
+    return;
   }
 
-  // Main pages
-  const mainPages = [
-    { path: '/clubes/', priority: '0.9' },
-    { path: '/como-unirse/', priority: '0.8' },
-    { path: '/preguntas-frecuentes/', priority: '0.8' },
-    { path: '/precios/', priority: '0.8' },
-    { path: '/para-turistas/', priority: '0.7' },
-    { path: '/blog/', priority: '0.8' }
-  ];
+  const zoneTemplate = fs.readFileSync(zoneTemplateFile, 'utf8');
 
-  for (const page of mainPages) {
-    addUrl(`${BASE_URL}${page.path}`, TODAY, 'weekly', page.priority);
-    for (const lang of ['en', 'fr', 'it', 'de', 'pt']) {
-      addUrl(`${BASE_URL}/${lang}${page.path}`, TODAY, 'weekly', page.priority);
+  ZONES.forEach(zone => {
+    LANGUAGES.forEach(lang => {
+      const zoneContext = {
+        zone,
+        currentLang: lang,
+        currentDate: TODAY,
+        baseUrl: BASE_URL,
+        ctaLink: CTA_LINK,
+        langPrefix: lang === DEFAULT_LANG ? '' : '/' + lang,
+      };
+
+      const html = renderTemplate(zoneTemplate, zoneContext);
+
+      let outputPath;
+      if (lang === DEFAULT_LANG) {
+        const zonesDir = path.join(DIST_DIR, 'clubes');
+        if (!fs.existsSync(zonesDir)) fs.mkdirSync(zonesDir);
+        outputPath = path.join(zonesDir, zone.slug + '.html');
+      } else {
+        const langDir = path.join(DIST_DIR, lang, 'clubes');
+        if (!fs.existsSync(langDir)) fs.mkdirSync(langDir, { recursive: true });
+        outputPath = path.join(langDir, zone.slug + '.html');
+      }
+
+      fs.writeFileSync(outputPath, html);
+    });
+  });
+
+  console.log(`✓ Generated zone pages for ${ZONES.length} zones × ${LANGUAGES.length} languages`);
+}
+
+// Generate blog post pages
+function generateBlogPages() {
+  console.log('\n📝 Generating blog pages...');
+
+  const blogTemplateFile = path.join(TEMPLATES_DIR, 'blog-post.html');
+  if (!fs.existsSync(blogTemplateFile)) {
+    console.error('❌ Blog template not found:', blogTemplateFile);
+    return;
+  }
+
+  const blogTemplate = fs.readFileSync(blogTemplateFile, 'utf8');
+
+  POSTS.forEach(post => {
+    const lang = post.lang || DEFAULT_LANG;
+    const postContext = {
+      post,
+      currentLang: lang,
+      currentDate: TODAY,
+      baseUrl: BASE_URL,
+      ctaLink: CTA_LINK,
+      langPrefix: lang === DEFAULT_LANG ? '' : '/' + lang,
+    };
+
+    const html = renderTemplate(blogTemplate, postContext);
+
+    let outputPath;
+    if (lang === DEFAULT_LANG) {
+      const blogDir = path.join(DIST_DIR, 'blog');
+      if (!fs.existsSync(blogDir)) fs.mkdirSync(blogDir);
+      outputPath = path.join(blogDir, post.slug + '.html');
+    } else {
+      const langDir = path.join(DIST_DIR, lang, 'blog');
+      if (!fs.existsSync(langDir)) fs.mkdirSync(langDir, { recursive: true });
+      outputPath = path.join(langDir, post.slug + '.html');
     }
-  }
+
+    fs.writeFileSync(outputPath, html);
+  });
+
+  console.log(`✓ Generated ${POSTS.length} blog posts`);
+}
+
+// Generate sitemap.xml
+function generateSitemap() {
+  console.log('\n🗺️  Generating sitemaps...');
+
+  let pageSitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  pageSitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n';
+
+  // Home pages for each language
+  LANGUAGES.forEach(lang => {
+    const url = lang === DEFAULT_LANG ? BASE_URL + '/' : BASE_URL + '/' + lang + '/';
+    pageSitemap += '  <url>\n';
+    pageSitemap += '    <loc>' + url + '</loc>\n';
+    pageSitemap += '    <lastmod>' + TODAY + '</lastmod>\n';
+    pageSitemap += '    <priority>1.0</priority>\n';
+    pageSitemap += '  </url>\n';
+  });
 
   // Zone pages
-  for (const zone of ZONES) {
-    addUrl(`${BASE_URL}/clubes/${zone.slug}/`, TODAY, 'weekly', '0.7');
-    for (const lang of ['en', 'fr', 'it', 'de', 'pt']) {
-      addUrl(`${BASE_URL}/${lang}/clubes/${zone.slug}/`, TODAY, 'weekly', '0.7');
-    }
-  }
+  ZONES.forEach(zone => {
+    LANGUAGES.forEach(lang => {
+      const url =
+        lang === DEFAULT_LANG
+          ? BASE_URL + '/clubes/' + zone.slug + '/'
+          : BASE_URL + '/' + lang + '/clubes/' + zone.slug + '/';
+      pageSitemap += '  <url>\n';
+      pageSitemap += '    <loc>' + url + '</loc>\n';
+      pageSitemap += '    <lastmod>' + TODAY + '</lastmod>\n';
+      pageSitemap += '    <priority>0.8</priority>\n';
+      pageSitemap += '  </url>\n';
+    });
+  });
 
-  // Blog post pages
-  for (const post of POSTS) {
-    addUrl(`${BASE_URL}/blog/${post.slug}/`, TODAY, 'weekly', '0.6');
-    for (const lang of ['en', 'fr', 'it', 'de', 'pt']) {
-      addUrl(`${BASE_URL}/${lang}/blog/${post.slug}/`, TODAY, 'weekly', '0.6');
-    }
-  }
+  // Blog posts
+  POSTS.forEach(post => {
+    const lang = post.lang || DEFAULT_LANG;
+    const url =
+      lang === DEFAULT_LANG
+        ? BASE_URL + '/blog/' + post.slug + '/'
+        : BASE_URL + '/' + lang + '/blog/' + post.slug + '/';
+    pageSitemap += '  <url>\n';
+    pageSitemap += '    <loc>' + url + '</loc>\n';
+    pageSitemap += '    <lastmod>' + (post.dateModified || TODAY) + '</lastmod>\n';
+    pageSitemap += '    <priority>0.7</priority>\n';
+    pageSitemap += '  </url>\n';
+  });
 
-  // Build XML
-  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n';
-  xml += '         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"\n';
-  xml += '         xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0">\n';
-
-  for (const url of urls) {
-    xml += '  <url>\n';
-    xml += `    <loc>${escapeXml(url.loc)}</loc>\n`;
-    xml += `    <lastmod>${url.lastmod}</lastmod>\n`;
-    xml += `    <changefreq>${url.changefreq}</changefreq>\n`;
-    xml += `    <priority>${url.priority}</priority>\n`;
-    xml += '  </url>\n';
-  }
-
-  xml += '</urlset>';
-
-  ensureDir(DIST_DIR);
-  fs.writeFileSync(path.join(DIST_DIR, 'sitemap.xml'), xml, 'utf8');
-  console.log(`Generated: ${path.join(DIST_DIR, 'sitemap.xml')}`);
+  pageSitemap += '</urlset>';
+  fs.writeFileSync(path.join(DIST_DIR, 'sitemap.xml'), pageSitemap);
+  console.log(`✓ Generated sitemap.xml (${LANGUAGES.length * (1 + ZONES.length + POSTS.length)} URLs)`);
 }
 
 // Generate robots.txt
 function generateRobots() {
-  let robots = 'User-agent: *\n';
-  robots += 'Allow: /\n';
-  robots += 'Disallow: /invite/\n';
-  robots += '\n';
-  robots += `Sitemap: ${BASE_URL}/sitemap.xml\n`;
+  const robots = `User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /temp
 
-  ensureDir(DIST_DIR);
-  fs.writeFileSync(path.join(DIST_DIR, 'robots.txt'), robots, 'utf8');
-  console.log(`Generated: ${path.join(DIST_DIR, 'robots.txt')}`);
-}
-
-function escapeXml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+Sitemap: ${BASE_URL}/sitemap.xml
+Sitemap: ${BASE_URL}/image-sitemap.xml
+`;
+  fs.writeFileSync(path.join(DIST_DIR, 'robots.txt'), robots);
+  console.log(`✓ Generated robots.txt`);
 }
 
 // Main build function
 async function build() {
-  console.log('Starting build...\n');
+  console.log('🚀 Building weedmadrid.com...');
+  console.log(`📅 Build date: ${TODAY}`);
+  console.log(`🌍 Languages: ${LANGUAGES.join(', ')}`);
+  console.log(`📍 Zones: ${ZONES.length}`);
+  console.log(`📝 Posts: ${POSTS.length}\n`);
 
-  // Clean and create dist
+  // Clean dist directory
   if (fs.existsSync(DIST_DIR)) {
     fs.rmSync(DIST_DIR, { recursive: true });
-  }
-  ensureDir(DIST_DIR);
-
-  // Copy static assets
-  if (fs.existsSync(CSS_DIR)) {
-    console.log('Copying CSS...');
-    copyDir(CSS_DIR, path.join(DIST_DIR, 'css'));
+    console.log('🧹 Cleaned dist directory');
   }
 
-  if (fs.existsSync(JS_DIR)) {
-    console.log('Copying JS...');
-    copyDir(JS_DIR, path.join(DIST_DIR, 'js'));
-  }
-
-  if (fs.existsSync(IMG_DIR)) {
-    console.log('Copying images...');
-    copyDir(IMG_DIR, path.join(DIST_DIR, 'img'));
-  }
-
-  console.log('\nGenerating pages...\n');
-
-  // Load templates
-  const homepageTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'homepage.html'), 'utf8');
-  const clubsTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'clubs.html'), 'utf8');
-  const zoneTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'zone.html'), 'utf8');
-  const howToTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'how-to.html'), 'utf8');
-  const faqTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'faq.html'), 'utf8');
-  const pricesTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'prices.html'), 'utf8');
-  const touristsTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'tourists.html'), 'utf8');
-  const blogPostTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'blog-post.html'), 'utf8');
-  const blogIndexTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'blog-index.html'), 'utf8');
-
-  // Homepage for each language
-  for (const lang of LANGUAGES) {
-    const langPath = lang === 'es' ? '' : `/${lang}`;
-    const outputPath = lang === 'es'
-      ? path.join(DIST_DIR, 'index.html')
-      : path.join(DIST_DIR, lang, 'index.html');
-
-    generatePage(homepageTemplate, {
-      lang,
-      hreflangTags: generateHreflangTags('/', lang),
-      canPath: lang === 'es' ? '/' : `/${lang}/`,
-      zones: localizeZones(ZONES, lang)
-    }, outputPath);
-  }
-
-  // Clubs directory for each language
-  for (const lang of LANGUAGES) {
-    const outputPath = lang === 'es'
-      ? path.join(DIST_DIR, 'clubes', 'index.html')
-      : path.join(DIST_DIR, lang, 'clubes', 'index.html');
-
-    generatePage(clubsTemplate, {
-      lang,
-      hreflangTags: generateHreflangTags('/clubes/', lang),
-      canPath: lang === 'es' ? '/clubes/' : `/${lang}/clubes/`,
-      zones: localizeZones(ZONES, lang)
-    }, outputPath);
-  }
-
-  // Zone labels per language
-  const zoneLabels = {
-    es: {
-      home: 'Inicio', clubs: 'Clubes', requestInvitation: 'Solicitar Invitación',
-      membersActive: 'miembros activos en Madrid', updated: 'Actualizado Marzo',
-      viewingNow: 'personas viendo ahora', mapTitle: 'Ubicación en el Mapa',
-      aboutZone: 'Sobre', transportTitle: 'Cómo Llegar — Transporte Público',
-      localTips: 'Consejos Locales para', bestTime: '¿Cuándo es el Mejor Momento?',
-      landmarksTitle: 'Qué Ver Cerca de', ctaTitle: '¿Quieres Unirte a un Club en',
-      ctaSubtitle: 'Solicita tu invitación y accede a los mejores cannabis clubs de la zona.',
-      faqTitle: 'Preguntas Frecuentes sobre', joinTitle: 'Solicita Acceso a un Club en',
-      joinSubtitle: 'Proceso simple, rápido y seguro. Únete a miles de miembros satisfechos.',
-      otherZones: 'Otras Zonas en Madrid'
-    },
-    en: {
-      home: 'Home', clubs: 'Clubs', requestInvitation: 'Request Invitation',
-      membersActive: 'active members in Madrid', updated: 'Updated March',
-      viewingNow: 'people viewing now', mapTitle: 'Location on Map',
-      aboutZone: 'About', transportTitle: 'How to Get There — Public Transport',
-      localTips: 'Local Tips for', bestTime: 'When Is the Best Time?',
-      landmarksTitle: 'What to See Near', ctaTitle: 'Want to Join a Club in',
-      ctaSubtitle: 'Request your invitation and access the best cannabis clubs in the area.',
-      faqTitle: 'FAQ About', joinTitle: 'Request Access to a Club in',
-      joinSubtitle: 'Simple, fast and secure process. Join thousands of satisfied members.',
-      otherZones: 'Other Areas in Madrid'
-    },
-    fr: {
-      home: 'Accueil', clubs: 'Clubs', requestInvitation: 'Demander Invitation',
-      membersActive: 'membres actifs à Madrid', updated: 'Mis à jour Mars',
-      viewingNow: 'personnes consultent maintenant', mapTitle: 'Localisation sur la Carte',
-      aboutZone: 'À Propos de', transportTitle: 'Comment S\'y Rendre — Transport Public',
-      localTips: 'Conseils Locaux pour', bestTime: 'Quel Est le Meilleur Moment?',
-      landmarksTitle: 'Que Voir Près de', ctaTitle: 'Rejoindre un Club à',
-      ctaSubtitle: 'Demandez votre invitation et accédez aux meilleurs clubs cannabis.',
-      faqTitle: 'FAQ sur', joinTitle: 'Demander l\'Accès à un Club à',
-      joinSubtitle: 'Processus simple, rapide et sécurisé. Rejoignez des milliers de membres.',
-      otherZones: 'Autres Quartiers à Madrid'
-    },
-    it: {
-      home: 'Home', clubs: 'Club', requestInvitation: 'Richiedi Invito',
-      membersActive: 'membri attivi a Madrid', updated: 'Aggiornato Marzo',
-      viewingNow: 'persone stanno guardando', mapTitle: 'Posizione sulla Mappa',
-      aboutZone: 'Su', transportTitle: 'Come Arrivare — Trasporto Pubblico',
-      localTips: 'Consigli Locali per', bestTime: 'Qual è il Momento Migliore?',
-      landmarksTitle: 'Cosa Vedere Vicino a', ctaTitle: 'Unisciti a un Club a',
-      ctaSubtitle: 'Richiedi il tuo invito e accedi ai migliori club cannabis della zona.',
-      faqTitle: 'FAQ su', joinTitle: 'Richiedi Accesso a un Club a',
-      joinSubtitle: 'Processo semplice, veloce e sicuro. Unisciti a migliaia di membri.',
-      otherZones: 'Altre Zone a Madrid'
-    },
-    de: {
-      home: 'Startseite', clubs: 'Clubs', requestInvitation: 'Einladung anfordern',
-      membersActive: 'aktive Mitglieder in Madrid', updated: 'Aktualisiert März',
-      viewingNow: 'Personen sehen gerade', mapTitle: 'Standort auf der Karte',
-      aboutZone: 'Über', transportTitle: 'Anfahrt — Öffentliche Verkehrsmittel',
-      localTips: 'Lokale Tipps für', bestTime: 'Wann ist die beste Zeit?',
-      landmarksTitle: 'Sehenswürdigkeiten in der Nähe von', ctaTitle: 'Einem Club in beitreten',
-      ctaSubtitle: 'Fordern Sie Ihre Einladung an und erhalten Sie Zugang zu den besten Cannabis Clubs.',
-      faqTitle: 'FAQ zu', joinTitle: 'Zugang zu einem Club in anfordern',
-      joinSubtitle: 'Einfacher, schneller und sicherer Prozess. Tausende zufriedene Mitglieder.',
-      otherZones: 'Andere Bezirke in Madrid'
-    },
-    pt: {
-      home: 'Início', clubs: 'Clubes', requestInvitation: 'Solicitar Convite',
-      membersActive: 'membros ativos em Madrid', updated: 'Atualizado Março',
-      viewingNow: 'pessoas vendo agora', mapTitle: 'Localização no Mapa',
-      aboutZone: 'Sobre', transportTitle: 'Como Chegar — Transporte Público',
-      localTips: 'Dicas Locais para', bestTime: 'Qual é o Melhor Momento?',
-      landmarksTitle: 'O Que Ver Perto de', ctaTitle: 'Juntar-se a um Clube em',
-      ctaSubtitle: 'Solicite o seu convite e acesse os melhores clubes cannabis da zona.',
-      faqTitle: 'FAQ sobre', joinTitle: 'Solicitar Acesso a um Clube em',
-      joinSubtitle: 'Processo simples, rápido e seguro. Junte-se a milhares de membros.',
-      otherZones: 'Outras Zonas em Madrid'
-    }
-  };
-
-  // Zone pages for each language
-  for (const zone of ZONES) {
-    for (const lang of LANGUAGES) {
-      const outputPath = lang === 'es'
-        ? path.join(DIST_DIR, 'clubes', zone.slug, 'index.html')
-        : path.join(DIST_DIR, lang, 'clubes', zone.slug, 'index.html');
-
-      const labels = zoneLabels[lang] || zoneLabels['es'];
-      const langPrefix = lang === 'es' ? '' : `/${lang}`;
-
-      // Generate FAQ HTML
-      const faqs = zone.faq || [];
-      const faqItems = faqs.map(f => `
-          <div class="faq-item" data-faq-toggle>
-            <h3>${escapeXml(f.question)}</h3>
-            <p>${escapeXml(f.answer)}</p>
-          </div>`).join('');
-
-      // Generate FAQ Schema JSON
-      const faqSchema = faqs.map(f => `{
-        "@type": "Question",
-        "name": ${JSON.stringify(f.question)},
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": ${JSON.stringify(f.answer)}
-        }
-      }`).join(',');
-
-      // Generate landmarks HTML
-      const landmarks = zone.nearby_landmarks || [];
-      const landmarksList = landmarks.map(l => `<li>${escapeXml(l)}</li>`).join('\n          ');
-
-      // Generate related zones HTML
-      const relatedZonesHtml = ZONES
-        .filter(z => z.slug !== zone.slug)
-        .map(z => {
-          const href = lang === 'es' ? `/clubes/${z.slug}/` : `/${lang}/clubes/${z.slug}/`;
-          return `<a href="${href}" class="zone-link-small" data-zone="${z.slug}">${z.name}<span class="clubs-badge">${z.clubs_count}</span></a>`;
-        }).join('\n          ');
-
-      // Meta description
-      const metaDescription = lang === 'es'
-        ? `Encuentra los mejores cannabis clubs en ${zone.name}, Madrid. Guía actualizada 2026 con precios, horarios y cómo unirte. ✓ Solicita invitación hoy.`
-        : `Find the best cannabis clubs in ${zone.name}, Madrid. Updated 2026 guide with prices, hours and how to join. ✓ Request invitation today.`;
-
-      generatePage(zoneTemplate, {
-        lang,
-        zone,
-        labels,
-        langPrefix,
-        hreflangTags: generateHreflangTags(`/clubes/${zone.slug}/`, lang),
-        canPath: lang === 'es' ? `/clubes/${zone.slug}/` : `/${lang}/clubes/${zone.slug}/`,
-        metaDescription,
-        faqItems,
-        faqSchema,
-        landmarksList,
-        relatedZonesHtml
-      }, outputPath);
-    }
-  }
-
-  // How to join page for each language
-  for (const lang of LANGUAGES) {
-    const outputPath = lang === 'es'
-      ? path.join(DIST_DIR, 'como-unirse', 'index.html')
-      : path.join(DIST_DIR, lang, 'como-unirse', 'index.html');
-
-    generatePage(howToTemplate, {
-      lang,
-      hreflangTags: generateHreflangTags('/como-unirse/', lang),
-      canPath: lang === 'es' ? '/como-unirse/' : `/${lang}/como-unirse/`
-    }, outputPath);
-  }
-
-  // FAQ page for each language
-  for (const lang of LANGUAGES) {
-    const outputPath = lang === 'es'
-      ? path.join(DIST_DIR, 'preguntas-frecuentes', 'index.html')
-      : path.join(DIST_DIR, lang, 'preguntas-frecuentes', 'index.html');
-
-    generatePage(faqTemplate, {
-      lang,
-      hreflangTags: generateHreflangTags('/preguntas-frecuentes/', lang),
-      canPath: lang === 'es' ? '/preguntas-frecuentes/' : `/${lang}/preguntas-frecuentes/`
-    }, outputPath);
-  }
-
-  // Prices page for each language
-  for (const lang of LANGUAGES) {
-    const outputPath = lang === 'es'
-      ? path.join(DIST_DIR, 'precios', 'index.html')
-      : path.join(DIST_DIR, lang, 'precios', 'index.html');
-
-    generatePage(pricesTemplate, {
-      lang,
-      hreflangTags: generateHreflangTags('/precios/', lang),
-      canPath: lang === 'es' ? '/precios/' : `/${lang}/precios/`,
-      zones: localizeZones(ZONES, lang)
-    }, outputPath);
-  }
-
-  // Tourists page for each language
-  for (const lang of LANGUAGES) {
-    const outputPath = lang === 'es'
-      ? path.join(DIST_DIR, 'para-turistas', 'index.html')
-      : path.join(DIST_DIR, lang, 'para-turistas', 'index.html');
-
-    generatePage(touristsTemplate, {
-      lang,
-      hreflangTags: generateHreflangTags('/para-turistas/', lang),
-      canPath: lang === 'es' ? '/para-turistas/' : `/${lang}/para-turistas/`
-    }, outputPath);
-  }
-
-  // Blog labels per language
-  const blogLabels = {
-    es: {
-      home: 'Inicio',
-      blog: 'Blog',
-      writtenBy: 'Escrito por',
-      faqTitle: 'Preguntas Frecuentes',
-      ctaTitle: '¿Quieres unirte a un club cannabico en Madrid?',
-      ctaSubtitle: 'Solicita tu invitación y accede a los mejores cannabis clubs de Madrid.',
-      requestInvitation: 'Solicitar Invitación',
-      relatedZones: 'Zonas Relacionadas',
-      otherPosts: 'Otros Artículos del Blog',
-      blogSubtitle: 'Guía completa sobre cannabis clubs en Madrid'
-    },
-    en: {
-      home: 'Home',
-      blog: 'Blog',
-      writtenBy: 'Written by',
-      faqTitle: 'Frequently Asked Questions',
-      ctaTitle: 'Want to join a cannabis club in Madrid?',
-      ctaSubtitle: 'Request your invitation and access the best cannabis clubs in Madrid.',
-      requestInvitation: 'Request Invitation',
-      relatedZones: 'Related Zones',
-      otherPosts: 'Other Blog Articles',
-      blogSubtitle: 'Complete guide to cannabis clubs in Madrid'
-    },
-    fr: {
-      home: 'Accueil',
-      blog: 'Blog',
-      writtenBy: 'Écrit par',
-      faqTitle: 'Questions Fréquemment Posées',
-      ctaTitle: 'Voulez-vous rejoindre un club cannabis à Madrid?',
-      ctaSubtitle: 'Demandez votre invitation et accédez aux meilleurs clubs cannabis de Madrid.',
-      requestInvitation: 'Demander Invitation',
-      relatedZones: 'Zones Associées',
-      otherPosts: 'Autres Articles du Blog',
-      blogSubtitle: 'Guide complet des clubs cannabis à Madrid'
-    },
-    it: {
-      home: 'Home',
-      blog: 'Blog',
-      writtenBy: 'Scritto da',
-      faqTitle: 'Domande Frequenti',
-      ctaTitle: 'Vuoi unirti a un club cannabis a Madrid?',
-      ctaSubtitle: 'Richiedi il tuo invito e accedi ai migliori club cannabis di Madrid.',
-      requestInvitation: 'Richiedi Invito',
-      relatedZones: 'Zone Correlate',
-      otherPosts: 'Altri Articoli del Blog',
-      blogSubtitle: 'Guida completa ai club cannabis di Madrid'
-    },
-    de: {
-      home: 'Startseite',
-      blog: 'Blog',
-      writtenBy: 'Geschrieben von',
-      faqTitle: 'Häufig Gestellte Fragen',
-      ctaTitle: 'Möchten Sie einem Cannabis Club in Madrid beitreten?',
-      ctaSubtitle: 'Fordern Sie Ihre Einladung an und erhalten Sie Zugang zu den besten Cannabis Clubs in Madrid.',
-      requestInvitation: 'Einladung anfordern',
-      relatedZones: 'Verbundene Bezirke',
-      otherPosts: 'Andere Blog-Artikel',
-      blogSubtitle: 'Vollständiger Leitfaden zu Cannabis Clubs in Madrid'
-    },
-    pt: {
-      home: 'Início',
-      blog: 'Blog',
-      writtenBy: 'Escrito por',
-      faqTitle: 'Perguntas Frequentes',
-      ctaTitle: 'Quer se juntar a um clube cannabis em Madrid?',
-      ctaSubtitle: 'Solicite seu convite e acesse os melhores clubes cannabis de Madrid.',
-      requestInvitation: 'Solicitar Convite',
-      relatedZones: 'Zonas Relacionadas',
-      otherPosts: 'Outros Artigos do Blog',
-      blogSubtitle: 'Guia completo para clubs cannabis em Madrid'
-    }
-  };
-
-  // Blog post pages for each language
-  for (const post of POSTS) {
-    for (const lang of LANGUAGES) {
-      const outputPath = lang === 'es'
-        ? path.join(DIST_DIR, 'blog', post.slug, 'index.html')
-        : path.join(DIST_DIR, lang, 'blog', post.slug, 'index.html');
-
-      const labels = blogLabels[lang] || blogLabels['es'];
-      const langPrefix = lang === 'es' ? '' : `/${lang}`;
-
-      // Get post title and content based on language
-      // Fallback: FR/IT/DE/PT use English if no translation, then Spanish
-      const postTitle = (lang === 'es' ? post.title_es : post[`title_${lang}`] || post.title_en || post.title_es);
-      const postContent = (lang === 'es' ? post.content_es : post[`content_${lang}`] || post.content_en || post.content_es);
-
-      // Generate FAQ items using details/summary pattern
-      const faqItems = (post.faq || []).map(f => `
-          <details class="faq-item">
-            <summary>${escapeXml(f.question)}</summary>
-            <p>${escapeXml(f.answer)}</p>
-          </details>`).join('');
-
-      // Generate FAQ Schema JSON
-      const faqSchema = (post.faq || []).map(f => `{
-        "@type": "Question",
-        "name": ${JSON.stringify(f.question)},
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": ${JSON.stringify(f.answer)}
-        }
-      }`).join(',');
-
-      // Generate related zones HTML
-      const relatedZonesHtml = ZONES.slice(0, 5).map(z => {
-        const href = lang === 'es' ? `/clubes/${z.slug}/` : `/${lang}/clubes/${z.slug}/`;
-        return `<a href="${href}" class="zone-link-small" data-zone="${z.slug}">${z.name}</a>`;
-      }).join('\n        ');
-
-      // Generate other posts HTML
-      const otherPostsHtml = POSTS
-        .filter(p => p.slug !== post.slug)
-        .slice(0, 3)
-        .map(p => {
-          const href = lang === 'es' ? `/blog/${p.slug}/` : `/${lang}/blog/${p.slug}/`;
-          const pTitle = lang === 'es' ? p.title_es : p[`title_${lang}`] || p.title_en || p.title_es;
-          const pDesc = lang === 'es' ? p.meta_description_es : p[`meta_description_${lang}`] || p.meta_description_en || p.meta_description_es || '';
-          return `<article class="post-card">
-            <h3><a href="${href}">${escapeXml(pTitle)}</a></h3>
-            <p class="post-meta">${p.date_published}</p>
-            <p class="post-excerpt">${escapeXml(pDesc)}</p>
-          </article>`;
-        }).join('\n        ');
-
-      // Meta description with language fallback
-      const metaDescription = (lang === 'es' ? post.meta_description_es : post[`meta_description_${lang}`] || post.meta_description_en || post.meta_description_es) || `Cannabis clubs en Madrid - ${postTitle}`;
-
-      generatePage(blogPostTemplate, {
-        lang,
-        langPrefix,
-        post: {
-          ...post,
-          title: postTitle
-        },
-        postContent,
-        metaDescription,
-        hreflangTags: generateHreflangTags(`/blog/${post.slug}/`, lang),
-        canPath: lang === 'es' ? `/blog/${post.slug}/` : `/${lang}/blog/${post.slug}/`,
-        labels,
-        faqItems,
-        faqSchema,
-        relatedZonesHtml,
-        otherPostsHtml
-      }, outputPath);
-    }
-  }
-
-  // Blog index page for each language
-  for (const lang of LANGUAGES) {
-    const outputPath = lang === 'es'
-      ? path.join(DIST_DIR, 'blog', 'index.html')
-      : path.join(DIST_DIR, lang, 'blog', 'index.html');
-
-    const labels = blogLabels[lang] || blogLabels['es'];
-    const langPrefix = lang === 'es' ? '' : `/${lang}`;
-
-    // Generate posts list HTML
-    const postsListHtml = POSTS.map(post => {
-      const postTitle = (lang === 'es' ? post.title_es : post[`title_${lang}`] || post.title_en || post.title_es);
-      const href = lang === 'es' ? `/blog/${post.slug}/` : `/${lang}/blog/${post.slug}/`;
-      return `<article class="post-card">
-        <h2><a href="${href}">${escapeXml(postTitle)}</a></h2>
-        <p class="post-meta">
-          <span class="date">${post.date_published}</span>
-          <span class="author">${labels.writtenBy} ${escapeXml(post.author)}</span>
-          ${post.reading_time ? `<span class="reading-time">${post.reading_time} min</span>` : ''}
-        </p>
-        ${post.category ? `<p class="post-category">${escapeXml(post.category)}</p>` : ''}
-        <p class="post-excerpt">${escapeXml((lang === 'es' ? post.meta_description_es : post[`meta_description_${lang}`] || post.meta_description_en || post.meta_description_es) || '')}</p>
-      </article>`;
-    }).join('\n      ');
-
-    // Page title based on language
-    const pageTitle = lang === 'es' ? 'Blog de Cannabis Clubs en Madrid' : lang === 'en' ? 'Cannabis Clubs Blog in Madrid' : lang === 'fr' ? 'Blog des Clubs Cannabis à Madrid' : lang === 'it' ? 'Blog dei Club Cannabis a Madrid' : lang === 'de' ? 'Blog Cannabis Clubs in Madrid' : 'Blog de Clubes Cannabis em Madrid';
-
-    generatePage(blogIndexTemplate, {
-      lang,
-      langPrefix,
-      pageTitle,
-      metaDescription: labels.blogSubtitle,
-      hreflangTags: generateHreflangTags('/blog/', lang),
-      canPath: lang === 'es' ? '/blog/' : `/${lang}/blog/`,
-      labels,
-      postsListHtml
-    }, outputPath);
-  }
-
-  // Generate sitemap and robots
+  copyAssets();
+  generatePages();
+  generateZonePages();
+  generateBlogPages();
   generateSitemap();
   generateRobots();
 

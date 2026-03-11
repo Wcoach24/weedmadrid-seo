@@ -1,8 +1,5 @@
 User-agent: *
 Allow: /
-Disallow: /admin
-Disallow: /api
-Disallow: /temp
+Disallow: /invite/
 
 Sitemap: https://www.weedmadrid.com/sitemap.xml
-Sitemap: https://www.weedmadrid.com/image-sitemap.xml
